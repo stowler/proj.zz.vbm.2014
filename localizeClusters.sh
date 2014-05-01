@@ -8,7 +8,7 @@
 # CHANGELOG:	See the github repo above.
 #
 # DESCRIPTION:
-# This script outputs anatomical localizations for suprathreshold VBM clusters.
+# This script outputs anatomical localizations for existing suprathreshold VBM clusters.
 # 
 # SYSTEM REQUIREMENTS:
 # - awk must be installed for fxnCalc
@@ -47,12 +47,6 @@
 
 
 fxnPrintUsage() {
-   # EDITME: customize for each script:
-   #echo >&2 "$0 - a script to do something. Example of a usage note:"
-   #echo >&2 "Usage: scriptname [-r|-n] -v file {file2 ...}"
-   #echo >&2 "  -r   print data rows only (no column names)"
-   #echo >&2 "  -n   pring column names ONLY (no data rows)"
-   #echo >&2 "  -v   be verbose"
    echo >&2 "${scriptName} - a script to provide anatomical localizations of suprathreshold VBM clusters."
    echo >&2 "Usage: ${scriptName} "
    echo >&2 "(no command-line arguments after script name: everything is defined in the script)"
@@ -74,7 +68,7 @@ fxnProcessInvocation() {
 
 
 fxnSelftestBasic() {
-   # Tests the basic administrative internal funcions and variables of the
+   # Tests the basic administrative internal functions and variables of the
    # template on which this script is based. For manual auditing, valid output
    # may appear as comment text at the bottom of this script (TBD). This
    # self-test can be used to confirm that the basic functions of the script
@@ -89,10 +83,6 @@ fxnSelftestBasic() {
 
    # expose the basic constants defined in the script:
    echo "Some basic constants have been defined in this script:"
-   #echo "Their names are listed in variable \${listOfBasicConstants} : "
-   #echo "${listOfBasicConstants}"
-   #echo ""
-   #echo "...and here are their values:"
    echo ""
    for scriptConstantName in ${listOfBasicConstants}; do
       echo "\$${scriptConstantName} == ${!scriptConstantName}"
@@ -119,7 +109,7 @@ fxnSelftestBasic() {
    fi
 
 
-   # Strip out all comments that are marked as training. This will create a
+   # Strip out all comments that are marked for training. This will create a
    # slimmer, more readable version of the script :
    trainingMarker='###'       # trainingMarker must be sed-friendly. See below:
    cp ${scriptPath}/${scriptName} ${tempDir}/script-orig.sh
@@ -165,7 +155,7 @@ fxnSetTempDir() {
    kernel=`uname -s`
    if [ -n "${tempParent}" ] && [ -d "${tempParent}" ] && [ -w "${tempParent}" ]; then
       tempParentPreviouslySetToWritableDir=1
-   elif [ $hostname = "stowler-mba" ]; then
+   elif [ $hostname = "stowler-rmbp" ]; then
       tempParent="/Users/stowler/temp"
    elif [ $kernel = "Linux" ] && [ -d /tmp ] && [ -w /tmp ]; then
       tempParent="/tmp"
@@ -216,6 +206,10 @@ fxnSetSomeFancyConstants() {
 
 	# list of models represented as their existing subdirectory names:
 	modelList="zzReq01_age+fit+exec+age.fit+exec.fit+.feat zzReq02_age+pa+exec+age.pa+exec.pa+.feat zzReq03_age+fitness+pa+age.fit+age.pa+.feat zzReq04_age+fit+age.fit+.feat zzReq05_age+pa+age.pa.feat"
+
+	# throughout the nested loops below we'll be aggregating results by appending rows to one long results file
+	# suitable for emailing or import into spreadsheet:
+	aggOutputFile=${tempDir}/colonSeparatedValues-zz.vbm.2014-localizations-allClusterMasks-${startDateTime}.txt
 
 }
 
@@ -308,7 +302,7 @@ echo ""
 
 # use script's internal function to create ${tempDir} :
 fxnSetTempDir                 
-deleteTempDirAtEndOfScript=0  # <- set to 1 to delete ${tempDir} or 0 to leave it. See end of script.
+deleteTempDirAtEndOfScript=0
 
 
 # confirm that the script was launched correctly:
@@ -319,12 +313,16 @@ fxnProcessInvocation
 fxnSetSomeFancyConstants
 
 echo ""
-echo "Each VBM model has a directory of results in which there are masks that we are"
+echo "Each VBM model has an existing FEAT directory of results in which there are masks that we are"
 echo "going to localize. The directories are named for the models:"
 echo ""
 for model in ${modelList}; do
 	ls -ald ${sourceDirModels}/${model}
 done
+
+# initialize the aggregate output file:
+rm -f ${aggOutputFile}
+echo "modelName:clusterMaskName:clusterIntensity:hem:fslAtlas:fslAtlasRegionLabel:fslAtlasRegionProbabilityScaled100" > ${aggOutputFile}
 
 
 # loop start: perform cluster localization for clusters within each model:
@@ -339,7 +337,7 @@ for model in ${modelList}; do
 	echo "================================================================="
 	echo ""
 
-	# for access to input data:
+	# shorter paths for easier access to input data:
 	cd ${sourceDirModels}/${model}
 	
 	# this is where we'll write output:
@@ -347,7 +345,10 @@ for model in ${modelList}; do
 
 	# loop start: each file containing cluster masks will be processed in its own iteration of this loop:
 	for clusterMask in cluster_mask_zstat?.nii.gz; do
+
+		# return to this dir after cd'ing away in inner loops:
 		cd ${sourceDirModels}/${model}
+
 		echo ""
 		echo "================================================================="
 		echo " MODEL: ${model}"
@@ -357,12 +358,10 @@ for model in ${modelList}; do
 		      date
 		echo "================================================================="
 		echo ""
+
 		echo "Cluster mask:"
 		ls -l ${clusterMask}
 		fslinfo ${clusterMask}
-		#rm -f ${sourceDirModels}/meanGM-${model}++++${clusterMask}.1D
-		#3dROIstats -mask ${clusterMask} ${gm4D} > ${sourceDirModels}/meanGM-${model}++++${clusterMask}.1D
-
 	
 		# (TBD below: generalize this by wrapping in a test: does input cluster match 1mm MNI152 geometry already?)
 		#
@@ -382,6 +381,7 @@ for model in ${modelList}; do
 		-out ${tempDir}/${model}/${clusterMask}-1mm 
 		echo "...done:"
 		ls -altr ${tempDir}/${model}/${clusterMask}-1mm.nii.gz
+		#echo "DEBUG:"
 		#fslinfo ${clusterMask}-1mm.nii.gz
 		#3dinfo ${clusterMask}-1mm.nii.gz
 		
@@ -399,9 +399,12 @@ for model in ${modelList}; do
 
 
 
-		# Create one new volume per mask value per hemisphere, and run atlasquery against each of those volumes:
+		# Create one new volume per mask intensity per hemisphere, and run FSL's atlasquery against each of those volumes:
 		for maskValue in ${maskValues}; do
+
+			# return to this dir after cd'ing away in inner loops:
 			cd ${sourceDirModels}/${model}
+
 			echo ""
 			echo "================================================================="
 			echo " MODEL: ${model}"
@@ -424,9 +427,13 @@ for model in ${modelList}; do
 			rm -f ${tempDir}/${model}/${clusterMask}-1mm-?H-maskOrigValue${maskValue}*
 			fslmaths ${tempDir}/${model}/${clusterMask}-1mm -thr ${maskValue} -uthr ${maskValue} -mul ${blockLH} ${tempDir}/${model}/${clusterMask}-1mm-LH-maskOrigValue${maskValue} -odt char
 			fslmaths ${tempDir}/${model}/${clusterMask}-1mm -thr ${maskValue} -uthr ${maskValue} -mul ${blockRH} ${tempDir}/${model}/${clusterMask}-1mm-RH-maskOrigValue${maskValue} -odt char
+			#echo "DEBUG:"
 			#ls -al ${tempDir}/${model}/${clusterMask}-1mm-?H-maskOrigValue${maskValue}*
 
-			# now that we have created upsampled copies of input images, it's convenient to cd to the output dir:
+
+			# now that we have created upsampled copies of input
+			# images, it's convenient to cd to the output dir to
+			# avoid prohibitively long paths:
 			cd ${tempDir}/${model}
 			echo ""
 			ls -al ${clusterMask}-1mm-?H-maskOrigValue${maskValue}*
@@ -447,7 +454,10 @@ for model in ${modelList}; do
 				echo "================================================================="
 				echo ""
 
-				echo "~~~~~~~~~~~~~~~ START RESULTS: mask value ${maskValue}, hemisphere ${hem} ~~~~~~~~~~~~~~~"
+
+				# structured as two blocks per loop iteration b/c awkward atlasquery syntax:
+
+				# ...block 1 (harvard-oxford cortical atlas):
 				atlas=hoCortical
 				atlasquery -a "Harvard-Oxford Cortical Structural Atlas" -m ${clusterMask}-1mm-${hem}-maskOrigValue${maskValue} > ${atlas}-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt
 				# create a version of the text file that is prepended with colon-separated identifiers for easy importing into spreadsheets/SPSS/R:
@@ -457,8 +467,18 @@ for model in ${modelList}; do
 				while read -r line; do
 					echo "${rowIdentifiersForPrepend}:${line}"
 				done <${atlas}-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt > colonSeparatedValues-${atlas}-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt
+				echo ""	
+				echo "DEBUG: Confirm that we have the same number of lines in the prefixed output as the original output:"	
+				ls -al hoCortical-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt
+				wc -l  hoCortical-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt
+				ls -al colonSeparatedValues-hoCortical-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt
+				wc -l  colonSeparatedValues-hoCortical-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt
+				echo ""
+				# append to aggregate output file:
+				cat colonSeparatedValues-hoCortical-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt >> ${aggOutputFile}
 
-
+				
+				# ...block 2 (harvard-oxford subcortical atlas):
 				atlas=hoSubcortical
 				atlasquery -a "Harvard-Oxford Subcortical Structural Atlas" -m ${clusterMask}-1mm-${hem}-maskOrigValue${maskValue} > ${atlas}-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt
 				# create a version of the text file that is prepended with colon-separated identifiers for easy importing into spreadsheets/SPSS/R:
@@ -468,18 +488,15 @@ for model in ${modelList}; do
 				while read -r line; do
 					echo "${rowIdentifiersForPrepend}:${line}"
 				done <${atlas}-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt > colonSeparatedValues-${atlas}-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt
-
 				echo ""	
 				echo "DEBUG: Confirm that we have the same number of lines in the prefixed output as the original output:"	
-				ls -al hoCortical-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt
-				wc -l  hoCortical-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt
-				ls -al colonSeparatedValues-hoCortical-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt
-				wc -l  colonSeparatedValues-hoCortical-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt
 				ls -al hoSubcortical-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt
 				wc -l  hoSubcortical-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt
 				ls -al colonSeparatedValues-hoSubcortical-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt
 				wc -l  colonSeparatedValues-hoSubcortical-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt
 				echo ""
+				# append to aggregate output file:
+				cat colonSeparatedValues-hoSubcortical-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt >> ${aggOutputFile}
 
 				# generate copy-and-paste commands for manually auditing the most granular version of the output:
 				for atlas in hoCortical hoSubcortical; do
@@ -495,10 +512,13 @@ for model in ${modelList}; do
 						date
 					echo "================================================================="
 					echo ""
-					echo "To manually audit overlap list for HEMISPHERE ${hem} in ATLAS ${atlas}"
+					echo "!!!!!!!! RESULTS RESULTS RESULTS RESULTS RESULTS RESULTS RESULTS RESULTS !!!!!!!!!"
+					echo ""
+					echo "To manually audit localization list for hemisphere ${hem} in atlas ${atlas} ,"
 					echo "just copy-and-paste these commands:"
 					echo ""
-					echo "      cat ${tempDir}/${model}/${atlas}-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt"
+					#echo "      cat ${tempDir}/${model}/${atlas}-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt"
+					echo "      cat ${tempDir}/${model}/colonSeparatedValues-${atlas}-${model}+++${clusterMask}+++${hem}+++cluster${maskValue}.txt"
 					echo ""
 					echo "      sourceDirModels=${sourceDirModels}"
 					echo ""
@@ -513,8 +533,10 @@ for model in ${modelList}; do
 					echo "         \${FSLDIR}/data/standard/MNI152_T1_2mm.nii.gz -t .4 \\"
 					echo "         \${sourceDirModels}/${model}/${clusterMask} -l \"Random-Rainbow\" &"
 					echo ""
+					echo " (Remember to select fslview's Tools -> Toolbars -> Atlas Tools)"
+					echo ""
+					
 				done # <- end of loop: $atlas
-				echo "~~~~~~~~~~~~~~~ END RESULTS: mask value ${maskValue}, hemisphere ${hem} ~~~~~~~~~~~~~~~"
 			done # <- end of loop: $hem
 		done # <- end of loop: $maskValue
 	done # <- end of loop: $clusterMask
