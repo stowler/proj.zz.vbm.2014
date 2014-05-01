@@ -5,6 +5,7 @@
 #
 # CREATED:      ???????? by stowler@gmail.com
 # LAST UPDATED: 20140501 by stowler@gmail.com
+# CHANGELOG:	See the github repo above.
 #
 # DESCRIPTION:
 # This script outputs anatomical localizations for suprathreshold VBM clusters.
@@ -20,7 +21,7 @@
 # another writable location.
 #
 # OTHER ASSUMPTIONS:
-# None I can think of.
+# None worth mentioning at the moment.
 #
 #
 # NOTES TO HELP YOU READ AND EDIT THIS SCRIPT:
@@ -36,9 +37,6 @@
 #   EDITME :  areas that should be edited to meet specific needs of system/script/experiment/whatever
 #   TBD :     areas where I have work to do or decisions to make
 #   DEBUG :   areas that I only intend to uncomment and execute duing debugging
-#
-# Lines starting with "###" (three hash marks) are marked as training material
-# so they can be stripped out automatically
 #
 #
 
@@ -72,48 +70,6 @@ fxnProcessInvocation() {
       exit 1
    fi
    
-   
-   # when needed, process commandline arguments with getopt by removing this
-   # COMMENTBLOCK wrapper and editing:
-   
-   : <<'COMMENTBLOCK'
-   # STEP 1/3: initialize any variables that receive values during argument processing:
-   headingsoff=0
-   headingsonly=0
-   # STEP 2/3: set the getopt string:
-   set -- `getopt rn: "$@"`
-   # STEP 3/3: process command line switches in  a loop:
-   [ $# -lt 1 ] && exit 1	# getopt failed
-   while [ $# -gt 0 ]
-   do
-       case "$1" in
-         -r)   headingsoff=1
-   	    ;;
-         -n)	headingsonly=1
-   	    ;;
-         --)	shift; break
-   	    ;;
-         -*)
-   	    echo >&2 "usage: $0 [-r for data row only or -n for column names only] image ..."
-   	     exit 1
-   	     ;;
-          *)	break
-   	    ;;		# terminate while loop
-       esac
-       shift
-   done
-   # now all command line switches have been processed, and "$@" contains all file names
-   # check for incompatible invocation options:
-   if [ "$headingsoff" != "0" ] && [ "$headingsonly" != "0" ] ; then
-      echo ""
-      echo "ERROR: cannot specify both -r and -n:"
-      echo ""
-      fxnPrintUsage
-      echo ""
-      exit 1
-   fi
-COMMENTBLOCK
-# ...note that the terminal COMMENTBLOCK line above cannot be indented.
 }
 
 
@@ -242,7 +198,8 @@ fxnSetTempDir() {
 
 
 fxnSetSomeFancyConstants() {
-
+	# project-specific constants (EDITME)
+	# TBD: at the moment this hard-coding means these paths must be changed before executing on another machine
 
 	# 4D GM volume used in VBM analysis: 
 	sourceGM4D="/Users/stowler/ZZ.VBM.2014/inputs/GM_mod_merg_s2.nii.gz"
@@ -259,7 +216,6 @@ fxnSetSomeFancyConstants() {
 
 	# list of models represented as their existing subdirectory names:
 	modelList="zzReq01_age+fit+exec+age.fit+exec.fit+.feat zzReq02_age+pa+exec+age.pa+exec.pa+.feat zzReq03_age+fitness+pa+age.fit+age.pa+.feat zzReq04_age+fit+age.fit+.feat zzReq05_age+pa+age.pa.feat"
-
 
 }
 
@@ -350,10 +306,7 @@ echo ""
 
 
 
-#fxnSelftestBasic             # <- the script will exit after completing the self-test, ignoring all lines below.
-
-
-# use internal function to create ${tempDir} :
+# use script's internal function to create ${tempDir} :
 fxnSetTempDir                 
 deleteTempDirAtEndOfScript=0  # <- set to 1 to delete ${tempDir} or 0 to leave it. See end of script.
 
@@ -565,34 +518,8 @@ for model in ${modelList}; do
 			done # <- end of loop: $hem
 		done # <- end of loop: $maskValue
 	done # <- end of loop: $clusterMask
-			exit
 done # <- end of loop: $model
 
-: <<'COMMENTBLOCK'
-echo ""
-echo ""
-echo "================================================================="
-echo "START: begin localizing
-echo "(should take about EDITME minutes)"
-      date
-echo "================================================================="
-echo ""
-echo ""
-
-echo "(EDITME) If this line weren't just a placeholder in the template I'd be executing some useful commmands here."
-
-echo ""
-echo ""
-echo "================================================================="
-echo "FINISHED: did some stuff  (EDITME: add real one-line description)"
-      date
-echo "================================================================="
-echo ""
-echo ""
-COMMENTBLOCK
-
-
-#TBD: call fxnSelftestBasic if nothing happened earlier in the script
 
 # ------------------------- FINISHED: body of script ------------------------- #
 
