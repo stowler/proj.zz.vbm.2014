@@ -1,0 +1,515 @@
+Gray matter VBM: age, physical activity, fitness, and executive function
+========================================================
+
+***********************************************************
+
+REVISIONS:
+  * 20130804: initial half-hearted creation
+  * 20140501: getting ready for move to git repo
+
+***********************************************************
+
+```{r loadLibraries, echo=FALSE, include=FALSE}
+#########################################################################################
+# LOAD LIBRARIES:
+# (loading way up top so that sessoinInfo() can be called in the description of reproducibility)
+#
+
+# load required libraries:
+library(RCurl)
+library(ggplot2)
+library(plyr)
+library(reshape2)
+library(grid)
+library(SciViews)
+library(knitr)
+```
+
+
+1. Data sources
+==========================================================
+
+Input T1 VBM datasets (3D/4D nifti) were previously prepared by Zvinka in this parent directory (20130201 email):
+
+```
+parentDirInputImages=/data/birc/FLORIDA/AEROBIC_FITNESS/Analyses_Zvinka/FSL_VBM_OLD_only_regression/stats
+```
+
+The relevant input images (and derivatives) for the current analysis are:
+
+1. `${parentDirInputImages}/GM_mask.nii.gz`
+2. `${parentDirInputImages}/GM_mod_merg_s2.nii.gz`
+  * begat voxelwise standard deviation across participants: 
+     * `fslmaths GM_mod_merg_s2.nii.gz -Tstd GM_mod_merg_s2_std.nii.gz -odt float`
+  * begat voxelwise mean across participants:               
+     * `fslmaths GM_mod_merg_s2.nii.gz -Tmean GM_mod_merg_s2_mean.nii.gz -odt float`
+  * begat voxelwise cv across participants:                 
+     * `fslmaths GM_mod_merg_s2_std.nii.gz -div GM_mod_merg_s2_mean.nii.gz GM_mod_merg_s2_cv.nii.gz -odt float`
+  * begat mask removing cv > .75:         
+     * `fslmaths GM_mod_merg_s2_cv.nii.gz -uthr 0.75 GM_mod_merg_s2_mask.cv.75.nii.gz -odt float`
+
+Notes about those 3D/4D niftis:
+* Zvinka's skull-striping notes for those data are in excel spreadsheet `aerobicfitness_vbm_processingnotes` (Zvinka emailed 20130612).
+* The order of participant appearance in `GM_mod_merg_s2.nii.gz` is reflected in /data/birc/Florida/AEROBIC_FITNESS/Analyses_Zvinka/FSL_VBM_OLD_only_regression/template_list
+
+The four regressors to be regressed against 4D nifti data are stored as [a google drive csv file](https://docs.google.com/spreadsheet/pub?key=0AtQwiwfBQVsYdE1GcnRPWk9GSkRyM2s4Tm82NzhyZlE&single=true&gid=0&output=csv). They originated in Zvinka's emailed demographic and behavioral data excel file ("stephen_database"), which Stephen manually subsetted create to four variables formatted for FSL's FEAT (local disk single-line text files containing space-separated values)
+  * vbm.var1.age
+  * vbm.var2.pa
+  * vbm.var3.fitness
+  * vbm.var4.exec
+
+For testing of software reliability (i.e., FEAT results vs. SPSS/R regression), Stephen created a fith variable (gm.oneVoxel) containing each participant's gray matter value at voxel coordinate 40x87x57 (MNI 152 space)
+
+
+```{r importing_importTheData, echo=FALSE, include=FALSE}
+
+#########################################################################################
+# Data were imported into R from immutable sources:
+#
+
+# import non-brain VBM data:
+url.vbm.nonbrain <- "https://docs.google.com/spreadsheet/pub?key=0AtQwiwfBQVsYdE1GcnRPWk9GSkRyM2s4Tm82NzhyZlE&single=true&gid=0&output=csv"
+tc.vbm.nonbrain <- getURL(url.vbm.nonbrain, ssl.verifypeer = FALSE)
+data.raw.vbm.nonbrain <- (read.csv(textConnection(tc.vbm.nonbrain)))
+
+# save each to csv for temporary local back-up:
+write.csv(data.raw.vbm.nonbrain, file="/tmp/zz2013.raw.vbm.nonbrain.csv", row.names=FALSE)
+```
+
+
+```{r importing_reviewImportedData, echo=FALSE, include=FALSE}
+
+#########################################################################################
+# ...review imported data:
+#
+
+#str(data.raw.wabRepClass)
+#summary(data.raw.wabRepClass)
+
+```
+
+
+2. Data cleaning
+=========================================================
+
+```{r cleaning_namesOfVariables, echo=FALSE, include=FALSE}
+
+#########################################################################################
+# Names of variables were changed in order to...
+# ...reduce ambiguity.
+# ...improve variable sort order.
+# ...for consistency with existing analyses/variables/reporting/data dictionary.
+#
+
+
+```
+
+
+```{r cleaning_namesOfFactorLevels, echo=FALSE, include=FALSE}
+
+#########################################################################################
+# Names of factor levels were adjusted to...
+# ...remove initial numerals
+# ...[any of the variable name reasons listed above]
+#
+
+```
+
+The following data policies were applied after importing source data.
+
+## 2.1. Exclusion criteria
+
+```{r cleaning_exclusionCriteria, echo=FALSE, include=FALSE}
+
+#########################################################################################
+# All of the cases in the source data are to be included in this analysis per the investigators.
+# ...or....
+# Imported data were coded as missing ("NA") per these exclusion criteria:
+#
+# 20131215 email from Zvinka: "...get rid of subjects 214 and 108..."
+# 
+# s214 
+# - is 85 years old per zvinka's email, but 
+#
+
+```
+
+## 2.2. Missingness
+No missing data were found.
+```{r cleaning_missing, echo=FALSE, include=FALSE}
+
+#########################################################################################
+# No missing data were found.
+# ...or....
+# 
+# 
+
+```
+
+### List-wise deletion
+# "No list-wise case deletions were specified, as there were no missing or excluded data.
+
+### Pair-wise deletion
+No pair-wise case deletion were specified, as there were no missing or excluded data.
+
+## 2.3. Range validity
+After import, all variables passed manual screening for range validity.
+
+```{r cleaning_rangeValidity, echo=FALSE, include=FALSE}
+
+#########################################################################################
+# After import, all variables passed manual screening for range validity.
+#
+
+```
+
+## 2.4. Univariate outliers
+Univariate outliers were not asessed, trimmed, transformed, or coded for censoring.
+```{r cleaning_univariateOutliers, echo=FALSE, include=FALSE}
+
+#########################################################################################
+# Univariate outliers were not assessed, trimmed, transformed, or coded for censoring.
+#
+
+```
+
+## 2.5. Bivariate outliers
+Bivariate outliers were not asessed, trimmed, transformed, or coded for censoring.
+```{r cleaning_bivariateOutliers, echo=FALSE, include=FALSE}
+
+#########################################################################################
+# Bivariate outliers were not assessed, trimmed, transformed, or coded for censoring.
+#
+
+```
+
+## 2.6. Variable recoding
+No variable recoding was performed.
+```{r cleaning_variableRecoding, echo=FALSE, include=FALSE}
+
+#########################################################################################
+# No variable recoding was preformed.
+#
+
+```
+
+## 2.7. Variable rescaling
+Between data import and analysis in FEAT, no variables were demeaned, anchored at a specific minimum, rescaled as z-scores, or otherwise shifted.
+```{r cleaning_variableRescaling, echo=FALSE, include=FALSE}
+
+#########################################################################################
+# After data import, no variables were demeaned, anchored at a specific minimum, rescaled as z-scores, or otherwise shifted.
+#
+
+```
+
+## 2.8. Variable transformation
+Between data import and analysis, normality was not assessed, and no distributional transformations were applied.
+```{r cleaning_variableTransformation, echo=FALSE, include=FALSE}
+
+#########################################################################################
+# After data import, normality was not assessed, and no distributional transformations were applied.
+#
+
+```
+
+## 2.9. Subsets
+No subsets were constructed from the imported data.
+
+```{r cleaning_subsets, echo=FALSE, include=FALSE}
+
+#########################################################################################
+# No subsets were constructed from the imported data.
+# ...or maybe list-wise deletion of rows 1,6,13 (indexed from zero):
+# newhilodata <- hilodata[-c(1,6,13),]
+
+#A subset of the original data was created to list-wise exclude participants s214 and s108 were excluded per Zvinka's 20131205 email.
+#
+#s214
+#- is the 13th of 29 paricipants in the original vbm analysis (active.s214.3danat.RPI.nii.gz)
+#   - see `/data/birc/Florida/AEROBIC_FITNESS/Analyses_Zvinka/FSL_VBM_OLD_only_regression/template_list`
+#- is 85 years old per Zvinka's 20131205 email
+#- but the only occurance of age=85 in the raw data is row 26 of 29 (not the 13th, row, which would be consistent with the VBM image)
+#- ...so in my re-analysis I omitted the 13th VBM volume, which is not s214
+#
+#s108
+#- is 81 years old per Zvinka's 20131203 email
+#- is the 23rd of 29 participants in the vbm analysis (sedentary.s108.3danat.RPI.nii.gz)
+#   - see `/data/birc/Florida/AEROBIC_FITNESS/Analyses_Zvinka/FSL_VBM_OLD_only_regression/template_list`
+#- but  the only occurance of age=81 in the raw data is row 7 of 29 (not the 23rd row, which would be consistent with the VBM image)
+#- ...so in my re-analysis I omitted the 7th VBM volume which is not s108
+
+
+
+```
+
+
+## 2.10. Manual audit of cleaned data
+Cleaned input data were joined and exported as single data frame intended to be used for manual quality control of the preceeding steps.
+```{r cleaning_manualAudit, echo=FALSE, include=FALSE}
+
+#########################################################################################
+# Cleaned input data were joined and exported as a single data frame intended to be used for manual quality control of the preceeding steps.
+#
+
+#data.raw.wabRepClass <- transform (data.raw.wabRepClass, wabNamMinusRep=(wabNamPre-wabRepPre))
+#summary(data.raw.wabRepClass)
+data.vbm.nonbrain <- data.raw.vbm.nonbrain
+```
+
+### 2.10.1. Excluded confidently
+N/A: No exclusions, and no missing data were found.
+
+### 2.10.2. Excluded, but awaiting confirmation
+N/A: No exclusions, and no missing data were found.
+
+### 2.10.3. Included, but awaiting confirmation
+N/A: No exclusions, and no missing data were found.
+
+
+
+
+***********************************************************
+   
+3. Bivariate relationships
+==========================================
+
+To support planned analyses, bivariate relationships among continuous variables were characterized using scatterplots and correlation coefficients. Because this is exploratory data analysis, any post-hoc findings outside of planned analyses must be unambiguously described as such and interpreted appropriately.
+
+Statistically significant positive correlations shown below:
+fitness and physical activity
+
+Statistically significant negative correlations shown below:
+fitness and age
+
+```{r plot_functionsForCustomPairs, echo=FALSE, include=FALSE}
+
+#############################################################################################
+# define custom functions for the upcoming pairs() plots:
+
+# create histograms for the diagonal
+panel.hist <- function(x, ...)
+{
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(usr[1:2], 0, 1.5) )
+  h <- hist(x, plot = FALSE)
+  breaks <- h$breaks; nB <- length(breaks)
+  y <- h$counts; y <- y/max(y)
+  rect(breaks[-nB], 0, breaks[-1], y, col="lavender", ...)
+}
+
+# create text containing pearson and spearman correlations for upper panels of pairs scatterplot matrix:
+panel.cor <- function(x, y, digits=2, prefix="", cex.cor, ...)
+{
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(0, 1, 0, 1))
+  corPearson  <- cor.test(x, y, method = "pearson")
+  corSpearman <- cor.test(x, y, method = "spearman")
+  # get r and rho:
+  r        <- corPearson$estimate
+  r        <- format(c(r, 0.123456789), digits=digits)[1]
+  rho      <- corSpearman$estimate
+  rho      <- format(c(rho, 0.123456789), digits=digits)[1]
+  # ...and p-values for each:
+  r.pval   <- corPearson$p.value
+  r.pval   <- format(c(r.pval, 0.123456789), digits=digits)[1]
+  rho.pval <- corSpearman$p.value
+  rho.pval <- format(c(rho.pval, 0.123456789), digits=digits)[1]
+  # ...and df for pearson r:
+  r.df     <- corPearson$parameter
+  
+  # setup output lines:
+  line1.prefix <- "Pearson r = "
+  line2.prefix <- "\n df = "
+  line3.prefix <- "\n p-value = "
+  line4.prefix <- "\n\n Spearman rho = "
+  line5.prefix <- "\n p-value = "
+  
+  # concatenate for final output:
+  txt <- paste(line1.prefix, r, line2.prefix, r.df, line3.prefix, r.pval, line4.prefix, rho, line5.prefix, rho.pval, sep="")
+
+  if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
+  text(0.5, 0.5, txt, cex = .8)
+}
+
+```
+
+
+```{r plot_splom.nonBrains, echo=FALSE}
+###########################################################################################
+# create three scatterplot matrices: one per ROI
+# - use PAIR-WISE deletion of cases (per pair()'s  "na.pass"" instead of "na.omit""):
+# - include all wab classes (per "data = *.allWabClass")
+```
+
+
+```{r p.vbm.nonbrain, fig.width=7.5, fig.height=7.5, echo=FALSE, dpi=150, warning=FALSE}
+# (self-check: should be reliable with correlation matrices below)
+# p.wab.lateralFrontal.allWabClass.listwisedeletion :
+pairs(~ vbm.var1.age + vbm.var2.pa + vbm.var3.fitness + vbm.var4.exec + gm.oneVoxel,
+      data = data.vbm.nonbrain,
+      cex = .8, pch = 1, bg="steelblue", cex.labels = .8, font.labels=1, 
+      lower.panel=panel.reg, 
+      upper.panel=panel.cor, 
+      diag.panel=panel.hist,
+      na.action = "na.pass")
+# pearson correlation matrix using listwise deletion:
+#cor(data.long.change.lateralFrontal.LIchange1.post[5:8], use = "pairwise.complete.obs", method="pearson")
+# spearman correlation matrix using listwise deletion:
+#cor(data.long.change.lateralFrontal.LIchange1.post[5:8], use = "pairwise.complete.obs", method="spearman")
+
+```
+
+4. GM VBM: resources
+=========================================
+In the sections below, planned tests and quality control models were conducted with FSL's FEAT tool. 
+
+FSL's on-line reference material for feat includes:
+* [FEAT introduction](http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FEAT?highlight=%28%5CbCategoryFEAT%5Cb%29)
+* [FEAT userguide](http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FEAT/UserGuide?highlight=%28%5CbCategoryFEAT%5Cb%29)
+  * includes [Appendix A: Brief Overview of GLM Analysis](http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FEAT/UserGuide#Appendix_A:_Brief_Overview_of_GLM_Analysis)
+* [FEAT FAQ](http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FEAT/FAQ?highlight=%28%5CbCategoryFEAT%5Cb%29)
+* [FEAT statistics guide](http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FEAT/GuideStats?highlight=%28%5CbCategoryFEAT%5Cb%29)
+* [GLM general advice](http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/GLM)
+* The [FSL course](http://fsl.fmrib.ox.ac.uk/fslcourse/) materials are available, incluidng [FEAT lecture 1](http://fsl.fmrib.ox.ac.uk/fslcourse/lectures/feat1_part1.pdf), [FEAT lecture 2](http://fsl.fmrib.ox.ac.uk/fslcourse/lectures/feat1_part2.pdf), and the [practical](http://fsl.fmrib.ox.ac.uk/fslcourse/lectures/practicals/feat1/index.html).
+
+Jeanette Mumford maintains a [helpful tool](http://mumford.fmripower.org/mean_centering/) for deciding when to mean-center covariates.
+
+Inspecting feat output
+-------------------------------------
+
+Fslview helps you inspect your feat results efficiently, as described in [this FSL help page](http://fsl.fmrib.ox.ac.uk/fsl/fslview/fmri.html). For example, this call to fslview opens the thresholded versions of zstat1 and zstat2 overlaid on a reasonable backdrop of timeseries data: 
+`fslview -m ortho,lightbox filtered_func_data thresh_zstat1 -l "Hot" -t 0.5 thresh_zstat2 -l "Cool" -t 0.5`
+
+Notice that this provides more than the default tri-planar view:
+* Use Tools -> Cluster Browser to navigate clusters of all volumes in the feat directory.
+* In the "Feat data" window, explore the 4th dimension of the voxel under the crosshairs.
+  * Line color of the plots designate:
+     * red: the voxel's values
+     * blue: the fitted full model
+     * green: the selected fitted estimate (PE1, COPE1, etc.)
+   
+   
+For each....
+* inspect FEAT report: 
+* inspect FEAT nifti:
+* inspect additional plots:
+
+
+5. GM VBM: planned models
+=========================================
+Three full-factorial models were tested with FSL's feat. Resulting feat directories are named for the models.
+In each of these models, orthogonalized and non-orthogonalized results are provided:
+
+5.1. gm ~ age + fitness + age.fitness + exec.fitness
+--------------------------------------------------------------
+### non-orthogonalized
+### orthogonalized
+
+5.2. gm ~ age + pa + age.pa + exec.pa
+--------------------------------------------------------------
+### non-orthogonalized
+### orthogonalized
+
+5.3. gm ~ age + fitness + pa + age.fitness + age.pa
+--------------------------------------------------------------
+### non-orthogonalized
+### orthogonalized
+
+
+
+6. GM VBM: QC models with single regressors
+=========================================
+In order to confirm that feat's voxel-wise computations were performed as expected, a number of reduced-parameter models were estimated with feat. The resulting estimates were compared to those from an ostensibly identical model executed in R (i.e., completely outside of FSL). 
+
+For a single voxel, 'cause that's pretty easy to spot-check against feat's output..
+
+The fslview coorinates of an arbitrarily chosen voxel in the coritcal gray: 40, 87, 57 (mm: 10, 48, 42)
+* the voxel's first three intensity values reported by fslview: 0.639331, 0.536032, 0.558225, ...
+* ...which is matched by the intensities output from  `fslmeants -i GM_mod_merg_s2.nii.gz -c 40 87 57`
+* values along the dataset's fourth dimension were written to text file `gm.oneCoord.voxel40x87x57.txt`
+* ...and then imported to R variable `gm.voxel40x87x57`
+
+
+6.1. gm ~ age
+--------------------------------------------------------------
+### 6.1.1. Single-voxel results from R
+These are the values to which we will compare feat's single-voxel output:
+```{r qc_single_age, echo=FALSE, include=TRUE}
+summary(lm(formula = gm.oneVoxel ~ vbm.var1.age, data = data.vbm.nonbrain))
+```
+
+### 6.1.2. Single-voxel results from feat
+If the desired model was configured correctly in feat, these single-voxel results from feat should match the single-voxel results from R (above).
+```
+* AGREEMENT: feat pe1 = feat cope1 = ____, which matches rstats coeff = ____
+* CLOSE-ISH: feat tstat1 = 0.602695,       which is close to rstats t = ______
+* WAAAYYOFF: feat fstat1 = 0.363241,       which is close to rstats F(n,m) = _____
+```
+
+### 6.1.3. Whole-brain results from feat
+
+
+
+
+
+***********************************************************    
+
+Ethics notes
+============================
+
+## Privacy and security
+
+No PHI or PII are present in or derivable from these materials. 
+
+## Project status during preperation of this report
+
+* project sponsor: [link to grant if possible]
+* IRB expiration: [link to document if possible]
+* data sharing policy: [link to document if possible]
+* raw data collection: completed
+* data analysis: on-going
+* existing works from these data:
+   * MANUSCRIPTS:
+   * ABSTRACTS/POSTERS:
+   * PRESENTATIONS:
+   * DISSERTATIONS/THESES:
+   * CHAPTERS/MONOGRAPHS:
+     
+## This report includes exploratory data analysis
+
+Ethically this report's exporatory data analysis (EDA) may only be used for its three intended purposes:
+
+* to support PLANED ANALYSES within the sponsored research project
+* to derive data that may be used in the investigators' applications for future funding
+* to support the training of lab affiliates
+
+To those ends, this EDA was conducted to:
+* document immutable data inputs (raw observations or derivatives)
+* perform data validation and appropriate data cleaning:
+  * application of investigators' exclusion criteria
+  * missingness
+  * range validity
+  * univariate and bivariate outliers
+  * recoding
+  * rescaling
+  * distributional transformations 
+  * subsetting
+* characterize univariate features
+* characterize bivariate features
+* visualize higher-dimensional relationships as needed
+
+Post-hoc findings outside of planned analyses must be unambiguously described as such and interpreted appropriately.
+
+## This report is 100% reproducible
+
+This report, including its analyses and figures, can be reliably reproduced by anyone with access to three components: 
+* the immutable input data
+* the source code of the report: [TBD: link]
+* a compatible R statistical software environment:
+```{r sessionInfo, echo=FALSE}
+sessionInfo()
+```
+
+```{r BLANK, echo=FALSE, include=FALSE}
+```
