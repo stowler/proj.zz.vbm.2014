@@ -38,7 +38,7 @@ z-cog (voxel coords): 41.5, 51, 13.3
 ```
 
 First I confirmed the identity of the FEAT reports that contained those clusters:
-```
+```bash
 $ grep -r 1775 *
 (...snip...)
 masked.GM_thresh.z165/zzReq05_age+pa+age.pa.feat/cluster_zstat2.html
@@ -54,10 +54,10 @@ masked.GM_thresh.z165/zzReq05_age+pa+age.pa.feat_webOnly/cluster_zstat3.html
 masked.GM_thresh.z165/zzReq05_age+pa+age.pa.feat_webOnly/cluster_zstat3.txt
 
 ```
-j
+
 Then I visualized these two clusters in front of the standard-space GM images that were used to generate those clusters:
-```
-fslview \
+```bash
+$ fslview \
 inputs/GM_mod_merg_s2.nii.gz \
 masked.GM_thresh.z165/zzReq05_age+pa+age.pa.feat/cluster_mask_zstat2.nii.gz-maskOrigVal4.nii.gz \
 masked.GM_thresh.z165/zzReq05_age+pa+age.pa.feat/cluster_mask_zstat3.nii.gz-maskOrigVal1.nii.gz
@@ -136,7 +136,7 @@ Draft Figure 1: suprathreshold age-related voxels compared between two models: z
 --------------------------------
 
 1) Confirm that I'm using the correct zzReq04 mask per Zvinka's spreadsheet:
-```
+```bash
 # For zzReq04, ZZ's spreadsheet says age (zstat1) should have a single
 # suprathreshold cluster of 968 voxels with z-max of 3.73 located in the RH
 # striatum.
@@ -184,7 +184,7 @@ Draft Figure 2: suprathreshold fitness- or physicalActivity-related voxels compa
 ----------------------------------------------------------------------------------------------------------------------------
 
 1) Confirm that I'm using the correct zzReq04 mask per Zvinka's spreadsheet:
-```
+```bash
 # For zzReq04, ZZ's spreadsheet says fitness (zstat2) should have a single
 # suprathreshold cluster of 1130 voxels with z-max of 3.29 located in the LH
 # cerebellum.
@@ -204,7 +204,7 @@ cluster_mask_zstat2 -l "Blue" &
 ```
 
 2) Confirm that I'm using the correct zzReq05 mask per Zvinka's spreadsheet:
-```
+```bash
 # For zzReq05, ZZ's spreadsheet says physical activity (zstat2) should have three within-brain suprathreshold clusters:
 #    851 voxels with z-max of 3.88 located in "Bilateral frontal pole/superior frontal gyrus"
 #   1141 voxels with z-max of 4.96 located in "Left central Opercular cortex/middle temporal gyrus/STG (anterior perisylvian)"
@@ -236,7 +236,7 @@ cluster_mask_zstat2 -l "Blue" &
 ```
 
 3) Remove the outside-of-brain cluster:
-```
+```bash
 $ cd ~/ZZ.VBM.2014/masked.GM_thresh.z165/zzReq05_age+pa+age.pa.feat
 # 1. Get voxel counts for mask intensities 0 through 4:
 $ fslstats cluster_mask_zstat2.nii.gz -H 5 0 4
@@ -266,7 +266,7 @@ Draft Figure 3: suprathreshold age X (fitness OR PA) interaction voxels compared
 ------------------------------------------------------------------------------------------------------------------------
 
 1) Confirm that I'm using the correct zzReq04 mask per Zvinka's spreadsheet:
-```
+```bash
 # For zzReq04, ZZ's spreadsheet says age.fitness (zstat3) should have three suprathreshold clusters:
 #     1146 voxels with max-z of 4.32 located in "Left Postcentral Gyrus"
 #     1318 voxels with max-z of 3.9  located in "Right Superior temporal gyrus"
@@ -291,7 +291,7 @@ cluster_mask_zstat3 -l "Blue" &
 ```
 
 2) Confirm that I'm using the correct zzReq05 mask per Zvinka's spreadsheet:
-```
+```bash
 # For zzReq05, ZZ's spreadsheet says age.pa interaction (zstat3) has no
 # clusters inside of the brain. It has one cluster (#1) that should be
 # disregarded because it is an artificat of inconsistent skull-stripping
@@ -313,7 +313,7 @@ cluster_mask_zstat3 -l "Blue" &
 ```
 
 3) Remove the outside-of-brain cluster:
-```
+```bash
 $ cd ~/ZZ.VBM.2014/masked.GM_thresh.z165/zzReq05_age+pa+age.pa.feat
 # 1. Get voxel counts for mask intensities 0 through 1:
 $ fslstats cluster_mask_zstat3.nii.gz -H 2 0 1
