@@ -156,7 +156,7 @@ cluster_mask_zstat1 -l "Blue" &
 ```
 
 2) Confirm that I'm using the correct zzReq05 mask per Zvinka's spreadsheet:
-```
+```bash
 # For zzReq05, ZZ's spreadsheet says age (zstat1) should have two suprathreshold clusters:
 #    835 voxels with z-max of 3.92 located in LH striatum
 #   1159 voxels with z-max of 3.93 located in RH striatum 
